@@ -1,0 +1,17 @@
+# Byte-compiled / optimized Python files
+__pycache__/
+*.pyc
+
+
+# Virtual environment
+venv/
+env/
+
+
+# IDE and editor specific files
+.vscode/
+.idea/
+
+# Project specific (adjust as needed)
+*.log
+*.db
