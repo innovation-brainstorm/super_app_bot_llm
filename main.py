@@ -121,7 +121,10 @@ if __name__=="__main__":
         "send_email":send_email
     } 
 
-    bot=Bot("replace-with-key",function_def,function_map)
+    with open(".key","r") as f:
+        key=f.read()
+    
+    bot=Bot(key,function_def,function_map)
 
     while 1:
         user_query=input()

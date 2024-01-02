@@ -1,3 +1,4 @@
+.DS_Store
 # Byte-compiled / optimized Python files
 __pycache__/
 *.pyc
@@ -15,3 +16,8 @@ env/
 # Project specific (adjust as needed)
 *.log
 *.db
+
+*.key
+
+qa_example/text/*
+qa_example/processed/*
