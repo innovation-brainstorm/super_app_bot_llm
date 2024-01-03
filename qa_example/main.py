@@ -1,5 +1,6 @@
 
 import os
+from pathlib import Path
 import pandas as pd
 import numpy as np
 
@@ -7,36 +8,39 @@ from openai import OpenAI
 
 from crawler import crawl
 from preprocess import preprocess_text
-from embedding import embedding_df,get_embedding,cosine_similarity
+from embedding import OpenAIEmbedding,cosine_similarity
 
-def prepare():
-    domain = "openai.com" # <- put your domain to be crawled
-    full_url = "https://openai.com/" # <- put your domain to be crawled with https or http
+# Configure proxy settings of environment varialbes
+# proxy = 'http://172.25.208.1:10811'
+# os.environ['HTTP_PROXY'] = proxy
+# os.environ['HTTPS_PROXY'] = proxy
 
-    text_dir="qa_example/text/"+domain+"/"
-    process_dir="qa_example/processed/"
+def prepare(openai_key):
+    domain = "citigroup.com" # <- put your domain to be crawled
+    full_url = "https://www.citigroup.com/global" # <- put your domain to be crawled with https or http
 
-       # Create a directory to store the text files
-    if not os.path.exists("text/"):
-        os.mkdir("text/")
+    text_dir=Path("qa_example/text/"+domain+"/")
+    process_dir=Path("qa_example/processed/")
 
-    if not os.path.exists(text_dir):
-        os.mkdir(text_dir)
 
-    # Create a directory to store the csv files
-    if not os.path.exists(process_dir):
-            os.mkdir(process_dir)
+    text_dir.mkdir(parents=True,exist_ok=True)
+    process_dir.mkdir(parents=True,exist_ok=True)
+    
 
     crawl(full_url,domain,text_dir)
     preprocess_text(text_dir,process_dir)
-    df=pd.read_csv(process_dir+'chunked.csv', index_col=0)
-    embedding_df(df,process_dir)
+    df=pd.read_csv(process_dir / 'chunked.csv', index_col=0)
+
+    embedding=OpenAIEmbedding(openai_key)
+    embedding.add_embedding_for_df(df,process_dir/'embeddings.csv')
 
 
 class QaBot(object):
      
     def __init__(self,api_key,embedding_path):
         self.client = OpenAI(api_key=api_key)
+
+        self.embedding=OpenAIEmbedding(api_key)
 
         self.df=pd.read_csv(embedding_path, index_col=0)
         self.df['embeddings'] = self.df['embeddings'].apply(eval).apply(np.array)
@@ -48,7 +52,7 @@ class QaBot(object):
         """
 
         # Get the embeddings for the question
-        q_embeddings = get_embedding(question)
+        q_embeddings = self.embedding.get_embedding(question)
 
         # Get the distances from the embeddings
         self.df['similarity'] = self.df.embeddings.apply(lambda row:cosine_similarity(q_embeddings, row))
@@ -77,7 +81,7 @@ class QaBot(object):
         question="Am I allowed to publish model outputs to Twitter, without a human review?",
         max_len=1800,
         debug=False,
-        max_tokens=150,
+        max_tokens=256,
         stop_sequence=None
     ):
         """
@@ -92,10 +96,11 @@ class QaBot(object):
         try:
             # Create a chat completion using the question and context
             response = self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="gpt-3.5-turbo",#gpt-4-1106-preview,gpt-3.5-turbo
                 messages=[
-                    {"role": "system", "content": "Answer the question based on the context below, and if the question can't be answered based on the context, say \"I don't know\"\n\n"},
-                    #{"role": "system", "content": "Answer the question based on the context below\n\n"},
+                    #{"role": "system", "content": "Answer the question based on the context below, and if the question can't be answered based on the context, say \"I don't know\"\n\n"},
+                    #{"role": "system", "content": "Answer the question based on the context below with reference to the actual context, and if the question can't be answered based on the context, say \"I don't know\"\n\n"},
+                    {"role": "system", "content": "Answer the question based on the context below\n\n"},
                     {"role": "user", "content": f"Context: {context}\n\n---\n\nQuestion: {question}\nAnswer:"}
                 ],
                 temperature=0,
@@ -112,13 +117,22 @@ class QaBot(object):
 
 
 if __name__=="__main__":
-    
-    #prepare()
 
     with open(".key","r") as f:
-        key=f.read()
-    bot=QaBot(key,"qa_example/processed/embeddings.csv")
+        openai_key=f.read()
+    
+    #prepare(openai_key)
 
-    print(bot.answer_question(question="What day is it today?", debug=True))
-    print(bot.answer_question(question="What is our newest embeddings model?", debug=True))
-    print(bot.answer_question(question="What is ChatGPT?", debug=True))
+
+
+    bot=QaBot(openai_key,"qa_example/processed/embeddings.csv")
+
+
+    # print(bot.answer_question(question="What day is it today?", debug=True))
+    # print(bot.answer_question(question="What is our newest embeddings model?", debug=True))
+    # print(bot.answer_question(question="What is the goal of city in 2024?", debug=True))
+    while 1:
+        user_query=input("please input your question:")
+        print(bot.answer_question(user_query, debug=True))
+        print()
+

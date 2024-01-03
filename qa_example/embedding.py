@@ -2,28 +2,27 @@ import os
 from openai import OpenAI
 import numpy as np
 
-proxy = 'http://localhost:8001'
-os.environ['HTTP_PROXY'] = proxy
-os.environ['HTTPS_PROXY'] = proxy
+class OpenAIEmbedding(object):
 
-with open(".key","r") as f:
-    key=f.read()
+    def __init__(self,key,model='text-embedding-ada-002'):
 
-client = OpenAI(
-    api_key=key,
-)
-engine='text-embedding-ada-002'
+        self.client = OpenAI(api_key=key)
+        self.model=model
 
-def get_embedding(text, model="text-embedding-ada-002"):
-   resp=client.embeddings.create(input = [text], model=model)
-   return resp.data[0].embedding
+    def get_embedding(self,text):
+        resp=self.client.embeddings.create(input = [text], model=self.model)
+        return resp.data[0].embedding
 
-def embedding_df(df,process_dir):
+    def add_embedding_for_df(self,df,out_path=None):
 
-    df['embeddings'] = df.text.apply(lambda x: get_embedding(x, model=engine))
+        df['embeddings'] = df.text.apply(lambda x: self.get_embedding(x))
+        
+        if out_path:
+            df.to_csv(out_path)
 
-    df.to_csv(process_dir+'embeddings.csv')
-    print(df.head())
+        print(df.head())
+
+        return df
 
 
 def cosine_similarity(a, b):

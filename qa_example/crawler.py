@@ -93,32 +93,34 @@ def crawl(url,local_domain,text_dir):
 
     # While the queue is not empty, continue crawling
     while queue:
+        try:
+            # Get the next URL from the queue
+            url = queue.pop()
+            print(url) # for debugging and to see the progress
 
-        # Get the next URL from the queue
-        url = queue.pop()
-        print(url) # for debugging and to see the progress
+            # Save text from the url to a <url>.txt file
+            with open(text_dir/ (url[8:].replace("/", "_") + ".txt"), "w", encoding="UTF-8") as f:
 
-        # Save text from the url to a <url>.txt file
-        with open(text_dir+url[8:].replace("/", "_") + ".txt", "w", encoding="UTF-8") as f:
+                # Get the text from the URL using BeautifulSoup
+                soup = BeautifulSoup(requests.get(url).text, "html.parser")
 
-            # Get the text from the URL using BeautifulSoup
-            soup = BeautifulSoup(requests.get(url).text, "html.parser")
+                # Get the text but remove the tags
+                text = soup.get_text()
 
-            # Get the text but remove the tags
-            text = soup.get_text()
+                # If the crawler gets to a page that requires JavaScript, it will stop the crawl
+                if ("You need to enable JavaScript to run this app." in text):
+                    print("Unable to parse page " + url + " due to JavaScript being required")
 
-            # If the crawler gets to a page that requires JavaScript, it will stop the crawl
-            if ("You need to enable JavaScript to run this app." in text):
-                print("Unable to parse page " + url + " due to JavaScript being required")
+                # Otherwise, write the text to the file in the text directory
+                f.write(text)
 
-            # Otherwise, write the text to the file in the text directory
-            f.write(text)
-
-        # Get the hyperlinks from the URL and add them to the queue
-        for link in get_domain_hyperlinks(local_domain, url):
-            if link not in seen:
-                queue.append(link)
-                seen.add(link)
+            # Get the hyperlinks from the URL and add them to the queue
+            for link in get_domain_hyperlinks(local_domain, url):
+                if link not in seen:
+                    queue.append(link)
+                    seen.add(link)
+        except Exception as e:
+            print(url,e)
 
 
 

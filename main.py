@@ -3,10 +3,10 @@ from openai import OpenAI
 import json
 from functions import send_email,get_current_weather
 
-# Configure proxy settings
-proxy = 'http://172.28.0.1:10811'
-os.environ['HTTP_PROXY'] = proxy
-os.environ['HTTPS_PROXY'] = proxy
+# Configure proxy settings of environment varialbes
+# proxy = 'http://172.25.208.1:10811'
+# os.environ['HTTP_PROXY'] = proxy
+# os.environ['HTTPS_PROXY'] = proxy
 
 
 class Bot(object):

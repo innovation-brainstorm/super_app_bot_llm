@@ -20,4 +20,3 @@ env/
 *.key
 
 qa_example/text/*
-qa_example/processed/*
