@@ -42,6 +42,12 @@ class QaBot(object):
 
         self.embedding=OpenAIEmbedding(api_key)
 
+        self.messages=[ 
+                    #{"role": "system", "content": "Answer the question based on the context below, and if the question can't be answered based on the context, say \"I don't know\"\n\n"},
+                    #{"role": "system", "content": "Answer the question based on the context below with reference to the actual context, and if the question can't be answered based on the context, say \"I don't know\"\n\n"},
+                    {"role": "system", "content": "Answer the question only based on the context below\n\n"}
+                    ]
+
         self.df=pd.read_csv(embedding_path, index_col=0)
         self.df['embeddings'] = self.df['embeddings'].apply(eval).apply(np.array)
 
@@ -94,15 +100,13 @@ class QaBot(object):
             print("\n\n")
 
         try:
+            
+            # opt1. remove context from history messages opt2. make a summary for previous context
+            self.messages.append({"role": "user", "content": f"Context: {context}\n\n---\n\nQuestion: {question}\nAnswer:"})
             # Create a chat completion using the question and context
             response = self.client.chat.completions.create(
                 model="gpt-3.5-turbo",#gpt-4-1106-preview,gpt-3.5-turbo
-                messages=[
-                    #{"role": "system", "content": "Answer the question based on the context below, and if the question can't be answered based on the context, say \"I don't know\"\n\n"},
-                    #{"role": "system", "content": "Answer the question based on the context below with reference to the actual context, and if the question can't be answered based on the context, say \"I don't know\"\n\n"},
-                    {"role": "system", "content": "Answer the question based on the context below\n\n"},
-                    {"role": "user", "content": f"Context: {context}\n\n---\n\nQuestion: {question}\nAnswer:"}
-                ],
+                messages=self.messages,
                 temperature=0,
                 max_tokens=max_tokens,
                 top_p=1,
@@ -110,7 +114,12 @@ class QaBot(object):
                 presence_penalty=0,
                 stop=stop_sequence,
             )
-            return response.choices[0].message.content.strip()
+
+            response_message = response.choices[0].message
+
+            self.messages.append(response_message)
+
+            return response_message.content.strip()
         except Exception as e:
             print(e)
             return ""
